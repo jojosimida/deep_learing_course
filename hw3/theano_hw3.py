@@ -4,82 +4,78 @@ import numpy as np
 from random import random
 import matplotlib.pyplot as plt
 
+
 MIN_LENGTH = 50
 MAX_LENGTH = 55
 
 x_seq = T.matrix()
-a_0 = theano.shared(random())
-y_0 = T.dvector()
-Wi = theano.shared(np.array([random(),random()]))
-Wh = theano.shared(random())
-Wo = theano.shared(random())
-bh = theano.shared(.1)
-bo = theano.shared(.1)
+a_0 = T.matrix()
+# learning rate
+lr = T.scalar()
+Wi = T.matrix()
+Wh = T.matrix()
+Wo = T.matrix()
+bh = theano.shared(0.1)
+bo = theano.shared(0.1)
 y_hat_seq = T.iscalar()
-
-parameters = [Wi,Wh,Wo,bh,bo]
-learning_rate = 0.01
 
 
 def gen_data(min_length=MIN_LENGTH, max_length=MAX_LENGTH):
-	
-	# Generate x_seq
-	length = np.random.randint(min_length, max_length)
-	x_seq = np.concatenate([np.random.uniform(size=(length,1)),
-							np.zeros((length,1))], axis=1) #equal axis=-1
+    
+    # Generate x_seq
+    length = np.random.randint(min_length, max_length)
+    x_seq = np.concatenate([np.random.uniform(size=(length,1)),
+                            np.zeros((length,1))], axis=1) #equal axis=-1
 
-	# Set the second dimension to 1 at the indices to add
-	x_seq[np.random.randint(length/10),1] = 1
-	x_seq[np.random.randint(length/2,length),1] = 1
+    # Set the second dimension to 1 at the indices to add
+    x_seq[np.random.randint(length/10),1] = 1
+    x_seq[np.random.randint(length/2,length),1] = 1
 
-	# Multiply and sum the dimension of x_seq to get the target value
-	y_hat = np.sum(x_seq[:,0]*x_seq[:,1])
+    # Multiply and sum the dimension of x_seq to get the target value
+    y_hat = np.sum(x_seq[:,0]*x_seq[:,1])
 
-	return x_seq, y_hat
-
-
-def step(x_t, a_tm1):
-	a_t = T.tanh(T.dot(x_t,Wi) + T.dot(a_tm1,Wh) + bh)
-
-	# y_t = T.nnet.softmax(T.dot(a_t,Wo) + bo)
-	# y_t = T.nnet.softmax( [1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0])
-	y_t = T.dot(a_t,Wo) + bo
-	
-
-	return a_t,y_t
+    return x_seq, y_hat, length
 
 
-[a_seq,y_seq_ori], _ = theano.scan(
-					step,
-					sequences = x_seq,
-					outputs_info = [a_0,None]
-				
-					)
+# recurrent function (using tanh activation function) and linear output
+# activation function
+def step(x_t, a_tm1, Wi, Wh, Wo):
+    a_t = T.tanh(T.dot(x_t, Wi) + T.dot(a_tm1, Wh) + bh)
+    y_t = T.nnet.softmax(T.dot(a_t, Wo) + bo)
 
-y_seq = T.nnet.softmax(y_seq_ori)
-
-cost = T.sum((y_seq - y_hat_seq)**2)
-gWi, gWh, gWo, gbh, gbo = T.grad(cost, parameters)
-
-rnn_train = theano.function(
-			inputs=[x_seq,y_hat_seq],
-			outputs=[cost, y_seq],
-			updates = [
-					[Wi, Wi-learning_rate*gWi],
-					[Wh, Wh-learning_rate*gWh],
-					[Wo, Wo-learning_rate*gWo],
-					[bh, bh-learning_rate*gbh],
-					[bo, bo-learning_rate*gbo],
-			],
-			allow_input_downcast=True
-			)
+    return a_t, y_t
 
 
-for i in range(100):
-	x_seq, y_hat_seq = gen_data()
-	c , yy = rnn_train(x_seq,y_hat_seq)
-	print(c,yy)
-	print()
-	
+[a_seq, y_seq], _ = theano.scan(step,
+                        sequences=x_seq,
+                        outputs_info=[a_0, None],
+                        non_sequences=[Wi, Wh, Wo])
+# error between output and target
+error = ((y_seq - y_hat_seq) ** 2).sum()
+# gradients on the weights using BPTT
+gWi, gWh, gWo, gbh, gbo= T.grad(error, [Wi, Wh, Wo, bh, bo])
+# training function, that computes the error and updates the weights using
+# SGD.
+rnn = theano.function([a_0, x_seq, y_hat_seq, lr],
+                     error,
+                     updates={Wi: Wi - lr * gWi,
+                             Wh: Wh - lr * gWh,
+                             Wo: Wo - lr * gWo,
+                             bh: bh - lr * gbh,
+                             bo: bo - lr * gbo
+                             })
 
+
+for i in range(2):
+    x_seq, y_hat_seq, length = gen_data()
+    length = 50
+    Wi = theano.shared(np.random.uniform(size=(length, 2), low=-.01, high=.01))
+    Wh = theano.shared(np.random.uniform(size=(length, 1), low=-.01, high=.01))
+    Wo = theano.shared(np.random.uniform(size=(length, 1), low=-.01, high=.01))
+    a_0 = theano.shared(np.random.uniform(size=(length, 1), low=-.01, high=.01))
+
+    print(rnn(a_0,x_seq,y_hat_seq,0.01))
+
+    # print(Wi.get_value().shape)
+    # print(Wi.get_value())
 
