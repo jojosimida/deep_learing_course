@@ -49,12 +49,14 @@ def step(x_t, a_tm1):
 	return a_t,y_t
 
 
-[a_seq,y_seq], _ = theano.scan(
+[a_seq,y_seq_ori], _ = theano.scan(
 					step,
 					sequences = x_seq,
 					outputs_info = [a_0,None]
 				
 					)
+
+y_seq = T.nnet.softmax(y_seq_ori)
 
 cost = T.sum((y_seq - y_hat_seq)**2)
 gWi, gWh, gWo, gbh, gbo = T.grad(cost, parameters)
@@ -76,6 +78,8 @@ rnn_train = theano.function(
 for i in range(100):
 	x_seq, y_hat_seq = gen_data()
 	c , yy = rnn_train(x_seq,y_hat_seq)
+	print(c,yy)
+	print()
 	
 
-print(yy)
+
