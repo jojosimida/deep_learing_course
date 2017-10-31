@@ -76,3 +76,4 @@ rnn_train = theano.function(
 for i in range(100):
 	x_seq, y_hat_seq = gen_data()
 	print(rnn_train(x_seq,y_hat_seq))
+	
