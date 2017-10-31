@@ -39,8 +39,7 @@ def gen_data(min_length=MIN_LENGTH, max_length=MAX_LENGTH):
 
 
 def step(x_t, a_tm1):
-	a_t = T.tanh(T.dot(x_t,Wi)\
-					+ T.dot(a_tm1,Wh) + bh)
+	a_t = T.tanh(T.dot(x_t,Wi) + T.dot(a_tm1,Wh) + bh)
 
 	# y_t = T.nnet.softmax(T.dot(a_t,Wo) + bo)
 	# y_t = T.nnet.softmax( [1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0])
@@ -62,7 +61,7 @@ gWi, gWh, gWo, gbh, gbo = T.grad(cost, parameters)
 
 rnn_train = theano.function(
 			inputs=[x_seq,y_hat_seq],
-			outputs=cost,
+			outputs=[cost, y_seq],
 			updates = [
 					[Wi, Wi-learning_rate*gWi],
 					[Wh, Wh-learning_rate*gWh],
@@ -76,4 +75,7 @@ rnn_train = theano.function(
 
 for i in range(100):
 	x_seq, y_hat_seq = gen_data()
-	print(rnn_train(x_seq,y_hat_seq))
+	c , yy = rnn_train(x_seq,y_hat_seq)
+	
+
+print(yy)
