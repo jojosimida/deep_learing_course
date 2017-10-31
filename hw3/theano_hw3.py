@@ -9,7 +9,7 @@ MAX_LENGTH = 55
 
 x_seq = T.matrix()
 a_0 = theano.shared(random())
-y_0 = theano.shared(random())
+y_0 = T.dvector()
 Wi = theano.shared(np.array([random(),random()]))
 Wh = theano.shared(random())
 Wo = theano.shared(random())
@@ -38,13 +38,14 @@ def gen_data(min_length=MIN_LENGTH, max_length=MAX_LENGTH):
 	return x_seq, y_hat
 
 
-def step(x_t, a_tm1,y_tm1):
+def step(x_t, a_tm1):
 	a_t = T.tanh(T.dot(x_t,Wi)\
 					+ T.dot(a_tm1,Wh) + bh)
 
 	# y_t = T.nnet.softmax(T.dot(a_t,Wo) + bo)
 	# y_t = T.nnet.softmax( [1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0])
 	y_t = T.dot(a_t,Wo) + bo
+	
 
 	return a_t,y_t
 
@@ -52,7 +53,7 @@ def step(x_t, a_tm1,y_tm1):
 [a_seq,y_seq], _ = theano.scan(
 					step,
 					sequences = x_seq,
-					outputs_info = [a_0,y_0]
+					outputs_info = [a_0,None]
 				
 					)
 
@@ -76,4 +77,3 @@ rnn_train = theano.function(
 for i in range(100):
 	x_seq, y_hat_seq = gen_data()
 	print(rnn_train(x_seq,y_hat_seq))
-	
