@@ -9,12 +9,12 @@ MAX_LENGTH = 55
 
 bh = theano.shared(0.1)
 bo = theano.shared(0.1)
+Wi = theano.shared(np.random.uniform(size=(2,2), low=-.01, high=.01))
+Wh = theano.shared(np.random.uniform(size=(2,1), low=-.01, high=.01))
+Wo = theano.shared(np.random.uniform(size=(2,1), low=-.01, high=.01))
+a_0 = theano.shared(np.zeros((2,1)))
 x_seq = T.matrix()
 y_hat_seq = T.fscalar()
-Wi = T.matrix()
-Wh = T.matrix()
-Wo = T.matrix()
-a_0 = T.matrix()
 learning_rate = 0.01
 
 
@@ -67,10 +67,9 @@ rnn_train = theano.function(
 					[Wo, Wo-learning_rate*gWo],
 					[bh, bh-learning_rate*gbh],
 					[bo, bo-learning_rate*gbo],
-			]
+			],
+			allow_input_downcast=True
 			)
-
-
 
 
 
@@ -79,12 +78,6 @@ epochs = 10
 
 for i in range(epochs):
  	x_seq, y_hat_seq, length = gen_data()
- 	Wi = theano.shared(np.random.uniform(size=(2,2), low=-.01, high=.01))
- 	Wh = theano.shared(np.random.uniform(size=(2,1), low=-.01, high=.01))
- 	Wo = theano.shared(np.random.uniform(size=(2,1), low=-.01, high=.01))
- 	a_0 = theano.shared(np.zeros((2,1)))
-
-
 
  	c, y= rnn_train(x_seq, y_hat_seq)
 
