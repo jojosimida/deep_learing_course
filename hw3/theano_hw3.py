@@ -6,15 +6,19 @@ import matplotlib.pyplot as plt
 
 MIN_LENGTH = 50
 MAX_LENGTH = 55
+N_input = 2
+N_hidden = 2
+N_output = 1
 
-bh = theano.shared(0.1)
-bo = theano.shared(0.1)
-Wi = theano.shared(np.random.uniform(size=(2,2), low=-.01, high=.01))
-Wh = theano.shared(np.random.uniform(size=(2,1), low=-.01, high=.01))
-Wo = theano.shared(np.random.uniform(size=(2,1), low=-.01, high=.01))
-a_0 = theano.shared(np.zeros((2,1)))
+bh = theano.shared(np.zeros(N_hidden))
+bo = theano.shared(np.zeros(N_hidden))
+Wi = theano.shared(np.random.uniform(size=(N_hidden,N_input), low=-.01, high=.01))
+Wh = theano.shared(np.random.uniform(size=(N_hidden,N_hidden), low=-.01, high=.01))
+Wo = theano.shared(np.random.uniform(size=(N_hidden,N_hidden), low=-.01, high=.01))
+a_0 = theano.shared(np.zeros(N_hidden))
+# y_0 = theano.shared(np.zeros(N_output))
 x_seq = T.matrix()
-y_hat_seq = T.fscalar()
+y_hat_seq = T.scalar()
 learning_rate = 0.01
 
 
@@ -38,8 +42,10 @@ def gen_data(min_length=MIN_LENGTH, max_length=MAX_LENGTH):
 
 
 def step(x_t, a_tm1):
-	a_t = T.tanh(T.dot(x_t,Wi) + np.dot(a_tm1,Wh) + bh)
-	y_t = T.nnet.softmax(T.dot(a_t,Wo) + bo)	
+	a_t = T.tanh(T.dot(x_t,Wi) + T.dot(a_tm1,Wh) + bh)
+	# y_t_ori = T.nnet.softmax(T.dot(a_t,Wo) + bo)
+	# y_t = T.argmax(y_t_ori)
+	y_t =  T.nnet.softmax(T.dot(a_t,Wo) + bo)
 
 
 	return a_t,y_t
@@ -48,11 +54,13 @@ def step(x_t, a_tm1):
 [a_seq,y_seq], _ = theano.scan(
 					step,
 					sequences = x_seq,
-					outputs_info = [a_0,None]
+					outputs_info = [a_0,None],
+					
 				
 					)
 
 
+# y_seq_last = y_seq[-1][0]
 
 cost = T.sum((y_seq - y_hat_seq)**2)
 gWi, gWh, gWo, gbh, gbo = T.grad(cost, [Wi,Wh,Wo,bh,bo])
@@ -68,18 +76,19 @@ rnn_train = theano.function(
 					[bh, bh-learning_rate*gbh],
 					[bo, bo-learning_rate*gbo],
 			],
-			allow_input_downcast=True
 			)
 
 
 
 
-epochs = 10
+epochs = 10000
 
 for i in range(epochs):
  	x_seq, y_hat_seq, length = gen_data()
 
  	c, y= rnn_train(x_seq, y_hat_seq)
 
- 	print(c)
- 	print(y)
+ 	if i%1000==0:
+ 		print("iteration: {} ,cost: {}".format(i,c))
+ 		print(y)
+ 		print()
