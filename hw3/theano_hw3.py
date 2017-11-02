@@ -37,7 +37,7 @@ def gen_data(min_length=MIN_LENGTH, max_length=MAX_LENGTH):
     # Multiply and sum the dimension of x_seq to get the target value
     y_hat = np.sum(x_seq[:,0]*x_seq[:,1])
 
-    return x_seq, y_hat, length
+    return x_seq, y_hat
 
 
 
@@ -60,15 +60,15 @@ def step(x_t, a_tm1):
 					)
 
 
-# y_seq_last = y_seq[-1][0]
+y_seq_last = y_seq[-1]
 
-cost = T.sum((y_seq - y_hat_seq)**2)
+cost = T.sum((y_seq_last - y_hat_seq)**2)
 gWi, gWh, gWo, gbh, gbo = T.grad(cost, [Wi,Wh,Wo,bh,bo])
 
 
 rnn_train = theano.function(
 			inputs=[x_seq,y_hat_seq],
-			outputs=[cost, y_seq],
+			outputs=[cost, y_seq_last],
 			updates = [
 					[Wi, Wi-learning_rate*gWi],
 					[Wh, Wh-learning_rate*gWh],
@@ -78,13 +78,14 @@ rnn_train = theano.function(
 			],
 			)
 
+rnn_test = theano.function(inputs= [x_seq],outputs=y_seq)
 
 
 
 epochs = 10000
 
 for i in range(epochs):
- 	x_seq, y_hat_seq, length = gen_data()
+ 	x_seq, y_hat_seq = gen_data()
 
  	c, y= rnn_train(x_seq, y_hat_seq)
 
@@ -92,3 +93,9 @@ for i in range(epochs):
  		print("iteration: {} ,cost: {}".format(i,c))
  		print(y)
  		print()
+
+
+for i in range(10):
+	x_seq, y_hat = gen_data()
+	aa = rnn_test(x_seq)
+	print("Answer: {}, prediction: {}".format(y_hat, aa))
