@@ -6,15 +6,15 @@ import matplotlib.pyplot as plt
 
 MIN_LENGTH = 50
 MAX_LENGTH = 55
-N_input = 2
+N_input = 2    
 N_hidden = 2
-N_output = 1
+N_output = 2  
 
 bh = theano.shared(np.zeros(N_hidden))
-bo = theano.shared(np.zeros(N_hidden))
-Wi = theano.shared(np.random.uniform(size=(N_hidden,N_input), low=-.01, high=.01))
+bo = theano.shared(np.zeros(N_output))
+Wi = theano.shared(np.random.uniform(size=(N_input,N_hidden), low=-.01, high=.01))
 Wh = theano.shared(np.random.uniform(size=(N_hidden,N_hidden), low=-.01, high=.01))
-Wo = theano.shared(np.random.uniform(size=(N_hidden,N_hidden), low=-.01, high=.01))
+Wo = theano.shared(np.random.uniform(size=(N_hidden,N_output), low=-.01, high=.01))
 a_0 = theano.shared(np.zeros(N_hidden))
 # y_0 = theano.shared(np.zeros(N_output))
 x_seq = T.matrix()
@@ -55,20 +55,20 @@ def step(x_t, a_tm1):
 					step,
 					sequences = x_seq,
 					outputs_info = [a_0,None],
+					truncate_gradient=-1
 					
-				
 					)
 
 
-y_seq_last = y_seq[-1]
+# y_seq_last = y_seq[-1]
 
-cost = T.sum((y_seq_last - y_hat_seq)**2)
+cost = T.sum((y_seq - y_hat_seq)**2)
 gWi, gWh, gWo, gbh, gbo = T.grad(cost, [Wi,Wh,Wo,bh,bo])
 
 
 rnn_train = theano.function(
 			inputs=[x_seq,y_hat_seq],
-			outputs=[cost, y_seq_last],
+			outputs=[cost, y_seq],
 			updates = [
 					[Wi, Wi-learning_rate*gWi],
 					[Wh, Wh-learning_rate*gWh],
@@ -92,10 +92,13 @@ for i in range(epochs):
  	if i%1000==0:
  		print("iteration: {} ,cost: {}".format(i,c))
  		print(y)
+ 		# print(wi)
+ 		# print(wh)
+ 		# print(wo)
  		print()
 
 
-for i in range(10):
-	x_seq, y_hat = gen_data()
-	aa = rnn_test(x_seq)
-	print("Answer: {}, prediction: {}".format(y_hat, aa))
+# for i in range(10):
+# 	x_seq, y_hat = gen_data()
+# 	aa = rnn_test(x_seq)
+# 	print("Answer: {}, prediction: {}".format(y_hat, aa))
